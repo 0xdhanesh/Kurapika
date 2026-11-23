@@ -1,5 +1,6 @@
 import './icons.js'
 import mermaid from './vendor/mermaid.esm.min.mjs'
+import { readAnnotations, withAnnotations } from './annotations.js'
 import { examples } from './examples.js'
 import { attachInspector } from './inspect.js'
 
@@ -39,6 +40,7 @@ let renderedSource = ''
 let rawSvg = ''
 let zoom = 1
 let focusRegion = null
+let annotations
 let inspector
 let copyTimer
 function status(value, ok = false) {
@@ -65,6 +67,7 @@ function refreshEditor() {
     $('highlight').innerHTML = html + escapeHtml(value.slice(last)) + '\n'
   } else $('highlight').textContent = value + '\n'
   syncScroll()
+  updateAnnotationAccess()
   status(value === renderedSource && rawSvg ? 'Rendered' : 'Edited', value === renderedSource && !!rawSvg)
 }
 function syncScroll() {
@@ -105,7 +108,18 @@ function setZoom(value) {
   zoom = Math.max(.25, Math.min(32, value))
   resize()
 }
-function focusNeighborhood(node, neighbors) {
+function updateAnnotationAccess() {
+  const locked = busy || editor.value !== renderedSource
+  $('references').disabled = $('notes').disabled = locked
+  $('annotation-status').textContent = locked ? 'Render your source edits to annotate this node.' : 'Included in the Mermaid source.'
+}
+
+function focusNeighborhood(node, neighbors, id) {
+  $('node-tools').hidden = !node
+  const record = annotations?.records.get(id)
+  $('references').value = record?.references ?? ''
+  $('notes').value = record?.notes ?? ''
+  updateAnnotationAccess()
   focusRegion = null
   if (node) {
     // Screen bounds include every nested Mermaid group transform.
@@ -136,6 +150,7 @@ function focusNeighborhood(node, neighbors) {
 async function render(source = editor.value, previousView = null) {
   if (busy) return
   busy = true
+  updateAnnotationAccess()
   $('theme-switch').disabled = true
   $('render').disabled = true
   $('notice').hidden = true
@@ -143,14 +158,16 @@ async function render(source = editor.value, previousView = null) {
   try {
     if (!source.trim()) throw Error('Enter Mermaid code to render a diagram.')
     if (source.length > limit) throw Error('Diagram exceeds the 2 million character limit.')
-    const { svg } = await mermaid.render('mermaid-preview', source)
-    const parsed = await mermaid.mermaidAPI.getDiagramFromText(source)
+    annotations = readAnnotations(source)
+    const { svg } = await mermaid.render('mermaid-preview', annotations.diagram)
+    const parsed = await mermaid.mermaidAPI.getDiagramFromText(annotations.diagram)
     const layout = parsed.db.getData?.()
     drawing.innerHTML = svg
     rawSvg = svg
     renderedSource = source
     inspector = attachInspector(drawing.firstElementChild, layout, $('hint'), focusNeighborhood)
     focusNeighborhood(null, [])
+    inspector.setMode($('trace-mode').value)
     if (previousView) {
       inspector.restore(previousView.selected)
       setZoom(previousView.zoom)
@@ -171,8 +188,31 @@ async function render(source = editor.value, previousView = null) {
   } finally {
     $('theme-switch').disabled = false
     $('render').disabled = busy = false
+    updateAnnotationAccess()
   }
 }
+$('trace-mode').onchange = () => inspector?.setMode($('trace-mode').value)
+function updateAnnotation() {
+  const id = inspector?.selected
+  if (id == null || busy || editor.value !== renderedSource) return
+  const references = $('references').value
+  const notes = $('notes').value
+  const previous = annotations.records.get(id)
+  if (references || notes) annotations.records.set(id, { references, notes })
+  else annotations.records.delete(id)
+  const source = withAnnotations(annotations.diagram, annotations.records)
+  if (source.length > limit) {
+    if (previous) annotations.records.set(id, previous)
+    else annotations.records.delete(id)
+    $('references').value = previous?.references ?? ''
+    $('notes').value = previous?.notes ?? ''
+    $('annotation-status').textContent = 'The diagram has reached its 2 million character limit.'
+    return
+  }
+  editor.value = renderedSource = source
+  refreshEditor()
+}
+$('references').oninput = $('notes').oninput = updateAnnotation
 function closeMenu() {
   $('menu').hidden = true
   $('examples').setAttribute('aria-expanded', 'false')
