@@ -5,8 +5,8 @@
 <h1 align="center">Kurapika</h1>
 
 <p align="center">
-  An interactive Mermaid workspace for developers, security engineers and security architects.<br>
-  Render diagrams in your browser, focus on connected nodes and explore complex flows.
+  Learn how a system works by tracing its Mermaid flowchart.<br>
+  Follow a request through the services it reaches, then attach the source lines that explain each step.
 </p>
 
 <p align="center">
@@ -24,6 +24,8 @@
 </p>
 
 ---
+
+Start with a question. In the service architecture example, select **Primary Database** and trace backward to find which service writes to it. Select **API Gateway** and trace forward to see where a request can go. As you read the code, use node notes to record what you verified and what you still need to check.
 
 ## Features
 
@@ -46,6 +48,7 @@ Use Node.js 22 or newer, npm, Python 3, and a modern browser.
 git clone https://github.com/0xdhanesh/Kurapika.git
 cd Kurapika
 npm ci --ignore-scripts
+npm test
 npm run build
 npm start
 ```
@@ -84,7 +87,7 @@ With a node selected, open **Node references and notes**. Enter one file referen
 
 Diagram parsing and rendering happen in the browser. The application serves its Mermaid dependency from its own static assets. It has no application backend, analytics integration, or diagram upload endpoint.
 
-The theme initially follows the system preference. A manually selected theme is saved in browser local storage. Diagram source is held in memory and is reset to the sample on page reload. Copy your source before refreshing or choosing another example.
+The theme initially follows the system preference. A manually selected theme is saved in browser local storage. Kurapika also saves the current filename and editor contents in local storage as you edit, including unfinished Mermaid, source references, and notes. Reopening the site in the same browser profile restores that draft. Choosing an example replaces the current draft. Use **Copy source** to keep a separate copy or move it to another browser. Clearing site data removes the saved draft. If browser storage is full or blocked, the editor shows a warning.
 
 Mermaid is initialized with strict security settings and HTML labels disabled. The page includes a Content Security Policy. Rendering untrusted input still depends on Mermaid and the browser's behavior.
 
@@ -132,3 +135,7 @@ The workflow waits up to 60 seconds for the expected artifact ID to appear. If d
 ## Dependencies
 
 Mermaid is pinned in `package.json` and `package-lock.json`. Its license is copied to `dist/vendor/LICENSE` during the build. Mermaid syntax is documented in the official reference. [Mermaid documentation](https://mermaid.js.org/intro/syntax-reference.html)
+
+## License
+
+Kurapika is available under the [MIT License](LICENSE).
