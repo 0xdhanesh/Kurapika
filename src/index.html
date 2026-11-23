@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Kurapika · Diagram workspace</title>
+  <script src="./theme.js"></script>
+  <link rel="icon" href="./mark.svg"><link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header><div class="nav"><a class="brand" href="./"><img src="./mark.svg" alt="">Kurapika</a><span class="divider"></span><span class="nav-label">Mermaid Studio</span>
+<a class="docs" href="https://mermaid.js.org/intro/syntax-reference.html" target="_blank" rel="noreferrer"><i data-icon="book"></i>Syntax guide<i data-icon="external"></i></a>
+<button id="theme-switch" aria-label="Dark theme" aria-pressed="false" title="Switch to dark theme">
+  <span class="moon"><i data-icon="moon"></i></span><span class="sun"><i data-icon="sun"></i></span>
+</button></div></header>
+<main>
+  <section class="intro"><div><h1>Diagram workspace</h1><p>Render Mermaid diagrams and explore their connections.</p></div>
+  <div class="actions"><button id="toggle-source" aria-expanded="true" aria-controls="source-panel"><i data-icon="code"></i><span>Hide source</span></button><div class="examples"><button id="examples" aria-expanded="false" aria-controls="menu"><i data-icon="layers"></i>Examples<i data-icon="chevron"></i></button><div id="menu" hidden></div></div><button id="export" disabled><i data-icon="download"></i>Export SVG</button></div></section>
+  <div class="workspace" id="workspace">
+  <section class="panel source" id="source-panel"><div class="panel-head"><div class="heading"><span class="tile"><i data-icon="code"></i></span><h2>Source editor</h2></div><button class="icon-only" id="copy" title="Copy source" aria-label="Copy source"><i data-icon="copy"></i></button></div>
+  <div class="file"><i data-icon="file"></i><span id="filename">architecture.mmd</span></div>
+  <div class="codebox"><div id="gutter" aria-hidden="true"></div><div class="input-wrap"><pre id="highlight" aria-hidden="true"></pre><textarea id="source" aria-label="Mermaid source code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea></div></div>
+  <div class="editor-foot"><span id="lines"></span><button id="render"><i data-icon="play"></i>Render<span id="shortcut"></span></button></div></section>
+  <section class="panel preview"><div class="panel-head"><div class="heading"><span class="tile"><i data-icon="network"></i></span><h2>Diagram preview</h2></div><span id="state" role="status">Rendering</span></div>
+  <div class="canvas"><div id="viewport"><div id="drawing"></div></div><div id="notice" role="alert" hidden></div>
+  <div class="zoom"><button aria-label="Zoom out" id="minus"><i data-icon="minus"></i></button><output id="scale">100%</output><button aria-label="Zoom in" id="plus"><i data-icon="plus"></i></button><span></span><button id="fit" aria-label="Fit diagram" title="Fit diagram"><i data-icon="fit"></i></button></div></div>
+  <div class="preview-foot"><i data-icon="pointer"></i><span id="hint">Select a node to inspect its connections</span><button id="overview" hidden>Back to overview</button></div></section>
+  </div>
+  <footer><span><i data-icon="shield"></i>Local processing</span><span>Powered by Mermaid</span></footer>
+</main>
+<script type="module" src="./app.js"></script>
+</body></html>
