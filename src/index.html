@@ -24,6 +24,16 @@
   <section class="panel preview"><div class="panel-head"><div class="heading"><span class="tile"><i data-icon="network"></i></span><h2>Diagram preview</h2></div><span id="state" role="status">Rendering</span></div>
   <div class="canvas"><div id="viewport"><div id="drawing"></div></div><div id="notice" role="alert" hidden></div>
   <div class="zoom"><button aria-label="Zoom out" id="minus"><i data-icon="minus"></i></button><output id="scale">100%</output><button aria-label="Zoom in" id="plus"><i data-icon="plus"></i></button><span></span><button id="fit" aria-label="Fit diagram" title="Fit diagram"><i data-icon="fit"></i></button></div></div>
+  <div id="node-tools" hidden>
+    <label class="trace-control">Trace <select id="trace-mode"><option value="immediate">Immediate connections</option><option value="backward">Backward · upstream</option><option value="forward">Forward · downstream</option></select></label>
+    <details id="annotation-panel"><summary>Node references and notes</summary>
+      <div class="annotation-fields">
+        <label>Source references<textarea id="references" rows="2" placeholder="src/parser.js:42 (one per line)" spellcheck="false"></textarea></label>
+        <label>Notes<textarea id="notes" rows="2"></textarea></label>
+      </div>
+      <small id="annotation-status" role="status"></small>
+    </details>
+  </div>
   <div class="preview-foot"><i data-icon="pointer"></i><span id="hint">Select a node to inspect its connections</span><button id="overview" hidden>Back to overview</button></div></section>
   </div>
   <footer><span><i data-icon="shield"></i>Local processing</span><span>Powered by Mermaid</span></footer>

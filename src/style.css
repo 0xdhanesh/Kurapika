@@ -691,3 +691,52 @@ footer svg.icon {
     display:none;
   }
 }
+
+#node-tools {
+  border-top:1px solid var(--line);
+  padding:8px 15px;
+  font-size:.85rem;
+  max-height:40%;
+  overflow:auto;
+}
+
+.trace-control,.annotation-fields {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+#node-tools select,#node-tools textarea {
+  font:inherit;
+  color:inherit;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:5px;
+  padding:4px 6px;
+}
+
+#annotation-panel summary {
+  margin:5px 0;
+  cursor:pointer;
+}
+
+.annotation-fields label {
+  flex:1;
+  min-width:0;
+}
+
+.annotation-fields textarea {
+  display:block;
+  width:100%;
+  resize:vertical;
+}
+
+#annotation-status {
+  color:var(--muted);
+}
+
+#hint {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}

@@ -29,6 +29,7 @@
 
 - Mermaid source editor with line numbers, syntax highlighting, and explicit rendering.
 - Node inspection for flowcharts, including nested subgraphs. Selecting a node centers and enlarges it, highlights its immediate incoming and outgoing connections, animates connected paths, and dims unrelated nodes.
+- Forward and backward tracing across multiple flowchart edges, with per-node source references and notes.
 - Zoom controls, fit-to-view, and a full-width preview when the source editor is hidden.
 - Light and dark themes. Dark mode uses terminal-green selection outlines and animated paths, with translucent gray subgraph backgrounds.
 - SVG export and source copying.
@@ -75,7 +76,9 @@ flowchart TD
     api --> db[(Primary Database)]
 ```
 
-Selecting API Gateway highlights Web Client, Auth Service, and Application API.
+Selecting **API Gateway** highlights Web Client, Auth Service, and Application API. Choose **Forward · downstream** to also follow both service branches to Session Cache and Primary Database. Choose **Backward · upstream** to see the path from Web Client.
+
+With a node selected, open **Node references and notes**. Enter one file reference per line (for example, `src/router.js:42`) and add freeform notes. Edits update the Mermaid source as you type. **Copy source** carries these comments with the diagram. They are associated with the Mermaid node ID, so changing a display label preserves its notes. Clear both fields to remove the annotation.
 
 ## Local processing and storage
 
@@ -89,7 +92,7 @@ Mermaid is initialized with strict security settings and HTML labels disabled. T
 
 The application sets a source limit of 2,000,000 JavaScript string code units and a Mermaid edge limit of 10,000. These are configured ceilings. Actual rendering capacity depends on graph complexity, browser memory, and device performance. Rendering runs on the main browser thread, so complex diagrams can temporarily make the interface unresponsive.
 
-Node inspection follows one hop in both directions. It preserves immediate neighbors and highlights incident edges. Focus prioritizes the selected node's readability, so distant neighbors may require scrolling.
+Immediate inspection shows one hop in both directions. Directional traces follow marked endpoints across all reachable nodes, including cycles. Double-ended connections work in either direction. Unmarked links and invisible layout edges are excluded from directional traces. Focus prioritizes the selected node's readability, so distant neighbors may require scrolling.
 
 SVG exports contain the rendered diagram and Mermaid's theme styles. Interactive focus, dimming, and animated selection styles belong to the workspace UI.
 
@@ -118,6 +121,7 @@ The workflow waits up to 60 seconds for the expected artifact ID to appear. If d
 | `src/index.html` | Workspace markup and Content Security Policy |
 | `src/app.js` | Rendering, theme configuration, zoom, focus, and export |
 | `src/inspect.js` | Node adjacency, selection, and edge animation |
+| `src/annotations.js` | Node annotation comments in Mermaid source |
 | `src/theme.js` | Theme initialization before stylesheet rendering |
 | `src/style.css` | Responsive layouts and theme styles |
 | `src/examples.js` | Bundled Mermaid examples |
