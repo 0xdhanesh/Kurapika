@@ -42,7 +42,7 @@ Mermaid diagram types can be rendered using the bundled library. Interactive ins
 
 ## Run locally
 
-**On the constrained host**, extract the **kurapika-node** artifact from a successful **Package Node workspace** workflow run, or copy the locally prepared `build/kurapika.mjs` file to any directory and start it with Node.js 22 or newer:
+**On the constrained host**, place `kurapika.mjs` in any directory and start it with Node.js 22 or newer. The standalone file is available under **Assets** in each Node release. [Download the latest launcher](https://github.com/0xdhanesh/Kurapika/releases/latest/download/kurapika.mjs) · [Browse releases](https://github.com/0xdhanesh/Kurapika/releases)
 
 ```sh
 node kurapika.mjs
@@ -68,6 +68,8 @@ npm start
 Open http://127.0.0.1:4173/. Stop the server with Ctrl+C.
 
 The build creates the portable `build/kurapika.mjs` launcher and copies the same application and Mermaid modules into `dist/` for static hosting. Run `npm run build` after editing source files, then refresh the browser. Any static HTTP server can serve `dist/`.
+
+To publish a Node release, push a stable version tag such as `v1.0.0` on a commit containing the **Package Node workspace** workflow. The workflow runs both test suites and publishes the tested `kurapika.mjs` as a release asset.
 
 ## Use the workspace
 
