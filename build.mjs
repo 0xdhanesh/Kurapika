@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile } from 'node:fs/promises'
 
 await mkdir('dist/vendor', { recursive: true })
+await cp('LICENSE', 'dist/LICENSE')
 await cp('src', 'dist', { recursive: true })
 const vendor = 'node_modules/mermaid/dist'
 await cp(vendor + '/mermaid.esm.min.mjs', 'dist/vendor/mermaid.esm.min.mjs')
