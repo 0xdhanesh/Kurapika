@@ -1,3 +1,5 @@
+import { createTracer } from './trace.js'
+
 // Mermaid's layout model preserves parallel edges, explicit edge IDs and subgraphs.
 export function attachInspector(svg, layout, hint, onFocus) {
   const nodes = new Map()
@@ -6,25 +8,7 @@ export function attachInspector(svg, layout, hint, onFocus) {
     const el = elements.get(domId) || elements.get(svg.id + '-' + domId) || elements.get(id)
     if (el) nodes.set(id, el)
   }
-  const incident = new Map()
-  function addConnection(edge, reverse) {
-    const from = reverse ? edge.end : edge.start
-    const ahead = reverse ? edge.arrowTypeStart : edge.arrowTypeEnd
-    const behind = reverse ? edge.arrowTypeEnd : edge.arrowTypeStart
-    const visible = edge.thickness !== 'invisible'
-    if (!incident.has(from)) incident.set(from, [])
-    incident.get(from).push({
-      to: reverse ? edge.start : edge.end,
-      id: edge.id,
-      reverse,
-      forward: visible && !!ahead && ahead !== 'none',
-      backward: visible && !!behind && behind !== 'none'
-    })
-  }
-  for (const edge of layout?.edges ?? []) {
-    addConnection(edge, false)
-    addConnection(edge, true)
-  }
+  const trace = createTracer(layout?.edges ?? [])
   const paths = [...svg.querySelectorAll('path[data-edge]')]
   const labels = [...svg.querySelectorAll('.edgeLabel .label[data-id]')]
   const initial = nodes.size ? 'Select a node to inspect its connections' : 'Use the controls to zoom and fit the diagram'
@@ -32,26 +16,7 @@ export function attachInspector(svg, layout, hint, onFocus) {
   let selected
   let mode = 'immediate'
   function paint() {
-    const reached = new Set()
-    const active = new Set()
-    const reverse = new Set()
-    const pending = []
-    if (selected != null) {
-      reached.add(selected)
-      pending.push(selected)
-    }
-    while (pending.length) {
-      const current = pending.pop()
-      for (const edge of incident.get(current) ?? []) {
-        if (mode !== 'immediate' && !edge[mode]) continue
-        if (!active.has(edge.id) && edge.reverse) reverse.add(edge.id)
-        active.add(edge.id)
-        if (!reached.has(edge.to)) {
-          reached.add(edge.to)
-          if (mode !== 'immediate') pending.push(edge.to)
-        }
-      }
-    }
+    const { reached, active, reverse } = trace(selected, mode)
     for (const [key, node] of nodes) {
       // A nested group can contain the selected node and its incident paths.
       node.classList.toggle('dimmed', !!selected && !reached.has(key) && !node.classList.contains('cluster'))
