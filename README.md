@@ -1,6 +1,29 @@
-# Kurapika
+<p align="center">
+  <img src="src/logo.png" width="120" alt="Kurapika logo">
+</p>
 
-A browser-based Mermaid workspace for developers, security engineers, and security architects. Write diagrams, render them locally, and inspect the immediate connections around a selected node.
+<h1 align="center">Kurapika</h1>
+
+<p align="center">
+  An interactive Mermaid workspace for developers, security engineers and security architects.<br>
+  Render diagrams in your browser, focus on connected nodes and explore complex flows.
+</p>
+
+<p align="center">
+  <a href="https://github.com/0xdhanesh/Kurapika/actions/workflows/pages.yml"><img src="https://github.com/0xdhanesh/Kurapika/actions/workflows/pages.yml/badge.svg" alt="GitHub Pages deployment"></a>
+  <img src="https://img.shields.io/badge/version-1.0.0-6f42c1" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/Mermaid-11.17.2-FF3670?logo=mermaid&amp;logoColor=white" alt="Mermaid 11.17.2">
+  <img src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&amp;logoColor=white" alt="Node.js 22 or newer">
+  <img src="https://img.shields.io/badge/rendering-client--side-brightgreen" alt="Client-side rendering">
+</p>
+
+<p align="center">
+  <a href="https://0xdhanesh.github.io/Kurapika/">Open Kurapika</a>
+  &nbsp;·&nbsp;
+  <a href="#run-locally">Run locally</a>
+</p>
+
+---
 
 ## Features
 
@@ -98,7 +121,7 @@ The workflow waits up to 60 seconds for the expected artifact ID to appear. If d
 | `src/theme.js` | Theme initialization before stylesheet rendering |
 | `src/style.css` | Responsive layouts and theme styles |
 | `src/examples.js` | Bundled Mermaid examples |
-| `src/icons.js`, `src/mark.svg` | Interface icons and project mark |
+| `src/icons.js`, `src/logo.png` | Interface icons and project mark |
 | `build.mjs` | Static build and local Mermaid asset copying |
 | `.github/workflows/pages.yml` | Build, artifact verification, and Pages deployment |
 
