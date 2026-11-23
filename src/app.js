@@ -1,6 +1,7 @@
 import './icons.js'
 import mermaid from './vendor/mermaid.esm.min.mjs'
 import { readAnnotations, withAnnotations } from './annotations.js'
+import { readDraft, saveDraft } from './draft.js'
 import { examples } from './examples.js'
 import { attachInspector } from './inspect.js'
 
@@ -50,6 +51,22 @@ function status(value, ok = false) {
 function escapeHtml(s) {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
+let draftTimer
+function flushDraft() {
+  if (draftTimer == null) return
+  clearTimeout(draftTimer)
+  draftTimer = null
+  $('save-warning').hidden = saveDraft($('filename').textContent, editor.value)
+}
+function scheduleSave() {
+  clearTimeout(draftTimer)
+  draftTimer = setTimeout(flushDraft, 250)
+}
+window.addEventListener('pagehide', flushDraft)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) flushDraft()
+})
+
 function refreshEditor() {
   const value = editor.value
   const count = value.split('\n').length
@@ -210,6 +227,7 @@ function updateAnnotation() {
     return
   }
   editor.value = renderedSource = source
+  scheduleSave()
   refreshEditor()
 }
 $('references').oninput = $('notes').oninput = updateAnnotation
@@ -231,6 +249,7 @@ for (const example of examples) {
     if (busy) return
     closeMenu()
     load(example)
+    scheduleSave()
     $('examples').focus()
   }
   $('menu').append(btn)
@@ -254,7 +273,10 @@ document.addEventListener('keydown', event => {
   }
 })
 $('shortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ ↵' : 'Ctrl ↵'
-editor.addEventListener('input', refreshEditor)
+editor.addEventListener('input', () => {
+  refreshEditor()
+  scheduleSave()
+})
 editor.addEventListener('scroll', syncScroll)
 $('render').onclick = () => render()
 viewport.onclick = () => inspector?.clear()
@@ -306,4 +328,4 @@ $('export').onclick = () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 new ResizeObserver(resize).observe(viewport.parentElement)
-load(examples[0])
+load(readDraft() ?? examples[0])
