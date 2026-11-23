@@ -42,20 +42,32 @@ Mermaid diagram types can be rendered using the bundled library. Interactive ins
 
 ## Run locally
 
-Use Node.js 22 or newer, npm, Python 3, and a modern browser.
+**On the constrained host**, extract the **kurapika-node** artifact from a successful **Package Node workspace** workflow run, or copy the locally prepared `build/kurapika.mjs` file to any directory and start it with Node.js 22 or newer:
+
+```sh
+node kurapika.mjs
+```
+
+Open http://127.0.0.1:4173/ in your browser. For a remote host, forward its loopback port to your machine (for example, run `ssh -L 4173:127.0.0.1:4173 user@host` on your machine), then open the same URL. The browser runs the editor, tracing, annotations, and SVG export. The single file includes the application, Mermaid, its diagram modules, and license notices. The host can run offline with Node as its only installed runtime.
+
+The server binds to `127.0.0.1` on port `4173` by default. Set `HOST` and `PORT` to change the listener. For browser draft continuity, reopen the same address and port in the same browser profile.
+
+**To prepare the file from source**, use a build machine with Node.js 22 or newer and npm:
 
 ```sh
 git clone https://github.com/0xdhanesh/Kurapika.git
 cd Kurapika
+git switch node_version
 npm ci --ignore-scripts
 npm test
 npm run build
+npm run test:portable
 npm start
 ```
 
 Open http://127.0.0.1:4173/. Stop the server with Ctrl+C.
 
-The build copies the application and Mermaid's browser modules into `dist/`. Run `npm run build` after editing source files, then refresh the browser. Any static HTTP server can serve `dist/`.
+The build creates the portable `build/kurapika.mjs` launcher and copies the same application and Mermaid modules into `dist/` for static hosting. Run `npm run build` after editing source files, then refresh the browser. Any static HTTP server can serve `dist/`.
 
 ## Use the workspace
 
@@ -129,7 +141,7 @@ The workflow waits up to 60 seconds for the expected artifact ID to appear. If d
 | `src/style.css` | Responsive layouts and theme styles |
 | `src/examples.js` | Bundled Mermaid examples |
 | `src/icons.js`, `src/logo.png` | Interface icons and project mark |
-| `build.mjs` | Static build and local Mermaid asset copying |
+| `build.mjs` | Static site and standalone Node launcher packaging |
 | `.github/workflows/pages.yml` | Build, artifact verification, and Pages deployment |
 
 ## Dependencies

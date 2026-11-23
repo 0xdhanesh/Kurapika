@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "test:portable": "node scripts/check-portable.mjs",
     "build": "node build.mjs",
-    "start": "python3 -m http.server 4173 --bind 127.0.0.1 --directory dist"
+    "start": "node build/kurapika.mjs"
   },
   "dependencies": {
     "mermaid": "11.17.2"
