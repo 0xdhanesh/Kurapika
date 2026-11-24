@@ -184,15 +184,24 @@ $('graph-file').onchange = async event => {
   if (!file) return
   $('import-error').hidden = true
   try {
-    const { readGraphFile } = await import('./assessment-import.js')
-    const text = await readGraphFile(file)
-    if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
+    if (/\.json$/i.test(file.name)) {
+      status('Indexing assessment…')
+      const { importFiles, assessmentURL } = await import('./assessment-import.js')
+      location.assign(assessmentURL(await importFiles([file])))
+      return
+    }
+    const text = await file.text()
+    if (text.trimStart().startsWith('{')) {
       await openAssessment(text, file.name.replace(/\.json$/i, ''))
     } else {
+      if (text.length > limit) throw Error('Mermaid source exceeds the 2 million character limit.')
       load({ file: file.name, source: text })
       scheduleSave()
     }
-  } catch (error) { importError(error) }
+  } catch (error) {
+    status('Import failed')
+    importError(error.message.startsWith(file.name + ': ') ? error : new Error(file.name + ': ' + error.message))
+  }
 }
 
 function renderEditor() {

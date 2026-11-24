@@ -17,7 +17,7 @@ export function coverage(graph, table) {
   }
   const counts = { indexed: subjects.length, analyzed: 0, validated: 0, unresolved: 0, blocked: 0 }
   for (const item of subjects) {
-    if (item.summary.trim() || ['analyzed', 'validated'].includes(item.status)) counts.analyzed++
+    if ((typeof item.summary === 'string' ? item.summary.trim() : item.summary.hasText) || ['analyzed', 'validated'].includes(item.status)) counts.analyzed++
     if (item.validations.some(v => isIndependent(item, v))) counts.validated++
     const unresolved = table === 'chains' ? item.relationships.some(id => unresolvedEdges.has(id)) : unresolvedNodes.has(item.id)
     if (item.status === 'unresolved' || unresolved) counts.unresolved++

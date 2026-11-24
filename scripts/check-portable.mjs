@@ -28,6 +28,9 @@ try {
   const chunks = 'chunks/mermaid.esm.min/'
   const files = [
     ...(await readdir('src')).map(name => [name, 'src/' + name]),
+    ...(await readdir('node_modules/@streamparser/json/dist/mjs', { recursive: true }))
+      .filter(name => name.endsWith('.js')).map(name => ['vendor/streamparser/' + name, 'node_modules/@streamparser/json/dist/mjs/' + name]),
+    ['vendor/streamparser/LICENSE', 'licenses/streamparser-json.txt'],
     ['LICENSE', 'LICENSE'], ['vendor/LICENSE', 'node_modules/mermaid/LICENSE'],
     ['vendor/mermaid.esm.min.mjs', vendor + 'mermaid.esm.min.mjs'],
     ...(await readdir(vendor + chunks)).filter(name => name.endsWith('.mjs'))

@@ -1,3 +1,5 @@
+import { isPagedText } from './assessment-pages.js'
+import { readTextPage } from './assessment-store.js'
 import { compareGraphs, coverage } from './assessment-graph.js'
 
 export const $ = id => document.getElementById(id)
@@ -11,6 +13,59 @@ export function element(tag, text, className) {
   if (text !== undefined) el.textContent = text
   if (className) el.className = className
   return el
+}
+
+// Keep only the selected excerpt and its successor in the viewer.
+export function narrative(value) {
+  if (!isPagedText(value)) return element('span', value)
+  const box = element('details')
+  box.append(element('summary', 'Read text · ' + value.length.toLocaleString() + ' characters'))
+  const content = element('pre')
+  const previous = element('button', 'Previous excerpt')
+  const next = element('button', 'Next excerpt')
+  const status = element('span')
+  box.append(content, previous, status, next)
+  let page = 0, version = 0
+  const cache = new Map()
+  function load(i) {
+    if (!cache.has(i)) cache.set(i, readTextPage(value.textPages[i]))
+    return cache.get(i)
+  }
+  async function show(i) {
+    const current = ++version
+    page = i
+    previous.disabled = i === 0
+    next.disabled = i + 1 === value.textPages.length
+    status.textContent = ' ' + (i + 1) + ' / ' + value.textPages.length + ' '
+    content.textContent = 'Loading…'
+    try {
+      const text = await load(i)
+      if (current !== version) return
+      content.textContent = text
+      for (const k of cache.keys()) if (k !== i && k !== i + 1) cache.delete(k)
+      if (!next.disabled) load(i + 1).catch(() => cache.delete(i + 1))
+    } catch (error) { if (current === version) content.textContent = error.message }
+  }
+  box.ontoggle = () => {
+    if (box.open) show(page)
+    else { ++version; content.textContent = ''; cache.clear() }
+  }
+  previous.onclick = () => show(page - 1)
+  next.onclick = () => show(page + 1)
+  return box
+}
+
+export function pagedList(container, records, append, size = 50) {
+  let offset = 0
+  const more = element('button', 'Show more')
+  function show() {
+    more.remove()
+    for (const row of records.slice(offset, offset + size)) append(row)
+    offset += size
+    if (offset < records.length) container.append(more)
+  }
+  more.onclick = show
+  show()
 }
 
 export function options(select, values, first, selected = select.value) {
@@ -49,9 +104,19 @@ export function showCoverage(graph, baseline, table) {
   $('metrics').replaceChildren(...cells)
 }
 
-function valueText(value) {
-  if (typeof value === 'string') return value || '(empty)'
-  return JSON.stringify(value, null, 2)
+function diffValue(value) {
+  if (isPagedText(value)) return narrative(value)
+  if (typeof value === 'string') return element('pre', value || '(empty)')
+  const excerpts = []
+  const formatted = JSON.stringify(value, (key, item) => {
+    if (!isPagedText(item)) return item
+    excerpts.push(item)
+    return 'Excerpt ' + excerpts.length + ' · ' + item.length + ' characters'
+  }, 2)
+  const fragment = document.createDocumentFragment()
+  fragment.append(element('pre', formatted))
+  for (const excerpt of excerpts) fragment.append(narrative(excerpt))
+  return fragment
 }
 
 export function showComparison(graph, baseline, baselineId, onSelect) {
@@ -70,7 +135,7 @@ export function showComparison(graph, baseline, baselineId, onSelect) {
   for (const title of ['Record', 'ID', 'Change', 'Details']) head.append(element('th', title))
   const body = table.createTBody()
   const recordTypes = { nodes: 'Node', chains: 'Chain', relationships: 'Relationship', evidence: 'Evidence' }
-  for (const row of rows) {
+  pagedList(container, rows, row => {
     const tr = body.insertRow()
     tr.insertCell().textContent = recordTypes[row.table]
     const id = tr.insertCell()
@@ -89,12 +154,12 @@ export function showComparison(graph, baseline, baselineId, onSelect) {
       for (const field of row.fields.length ? row.fields : Object.keys(row.current || row.old)) {
         const part = element('div')
         part.append(element('strong', field))
-        if (row.old) part.append(element('pre', 'Before · ' + valueText(row.old[field])))
-        if (row.current) part.append(element('pre', 'After · ' + valueText(row.current[field])))
+        if (row.old) part.append('Before · ', diffValue(row.old[field]))
+        if (row.current) part.append('After · ', diffValue(row.current[field]))
         details.append(part)
       }
     }
     cell.append(details)
-  }
-  container.append(table)
+  })
+  container.prepend(table)
 }

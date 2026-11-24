@@ -119,3 +119,10 @@ dialog [role=alert] { margin-bottom:8px; }
 .inspector-tabs { display:flex; gap:4px; margin:12px 0; }
 .inspector-tabs button { flex:1; box-shadow:none; padding:6px; }
 .inspector-tabs [aria-pressed=true] { background:var(--hover); color:var(--accent); border-color:var(--accent); }
+
+.inspector-body pre, #event-summary pre {
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  max-height:20rem;
+  overflow:auto;
+}

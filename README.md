@@ -119,7 +119,9 @@ Mermaid is initialized with strict security settings and HTML labels disabled. T
 
 ## Large diagrams and current limits
 
-The application sets a source limit of 2,000,000 JavaScript string code units and a Mermaid edge limit of 10,000. These are configured ceilings. Actual rendering capacity depends on graph complexity, browser memory, and device performance. Rendering runs on the main browser thread, so complex diagrams can temporarily make the interface unresponsive.
+The Mermaid renderer sets a diagram source limit of 2,000,000 JavaScript string code units and a Mermaid edge limit of 10,000. Large assessment JSON files are indexed by a local worker. The assessment view pages through connected graph areas, timeline events, and long evidence text. [Large assessment navigation](docs/assessments.md#navigating-a-large-assessment)
+
+Actual rendering capacity depends on graph complexity, browser memory, and device performance. Rendering runs on the main browser thread, so complex diagrams can temporarily make the interface unresponsive.
 
 Immediate inspection shows one hop in both directions. Directional traces follow marked endpoints across all reachable nodes, including cycles. Double-ended connections work in either direction. Unmarked links and invisible layout edges are excluded from directional traces. Focus prioritizes the selected node's readability, so distant neighbors may require scrolling.
 

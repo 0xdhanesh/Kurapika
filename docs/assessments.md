@@ -44,13 +44,21 @@ A single run requires a `nodes` array. A bundle wraps one or more runs in `{"run
 | Evidence | The run-level `evidence` array holds records with an `id`, optional `label`, inline `detail`, and optional `url`. Nodes, chains, relationships, and validations cite these records with arrays of IDs. Inline evidence is available offline. Source and evidence links accept absolute HTTP or HTTPS URLs. |
 | Validation | Add `validations` to a node or chain. Each record requires a named `agent` and `result`, and may include `at`, `summary`, and evidence IDs. For example, `{"agent":"verifier","result":"confirmed","evidence":["call-site"]}`. |
 
-IDs are strings and must be unique within each record type. Keep the same ID across runs when a symbol is renamed or a function moves. The importer also accepts `edges` for `relationships` and assigns positional IDs to unnamed relationships in the initial graph. Set explicit edge IDs when publishing events or comparing runs. JSON imports accept up to 2,000,000 JavaScript string code units per file and 10,000 relationships at any timeline step.
+IDs are strings and must be unique within each record type. Keep the same ID across runs when a symbol is renamed or a function moves. The importer also accepts `edges` for `relationships` and assigns positional IDs to unnamed relationships in the initial graph. Set explicit edge IDs when publishing events or comparing runs. Assessment JSON has no fixed character limit. Available browser memory and storage constrain import size.
 
 ## Inspect and filter
 
 Select a node on the graph or choose a node or chain in the inspector. **Analysis** shows source locations, analyst summaries, validation records, and evidence. Select a caller, callee, or chain member to inspect it. Relationships of type `call` or `calls` populate the caller and callee lists. Other relationship types appear with their direction and status.
 
 File, language, status, and symbol or ID filters narrow the visible nodes. The relationship filters keep matching edges and their visible endpoints. The agent filter includes nodes and chains that the agent analyzed or validated, and relationships attributed to that agent. Matching chains contribute their members and listed relationships to the view. **Hide unrelated subgraphs** keeps the selected node's connected component in the filtered graph, or the selected chain's members and listed relationships. **Only unresolved relationships** shows open edges as dashed arrows. An unknown target is a visual placeholder.
+
+### Navigating a large assessment
+
+Files over 512 KiB are read incrementally in a local worker. Kurapika validates the import and stores the graph index, timeline pages, and longer text in IndexedDB. Initial validation still needs memory for the parsed run. On reopening, the active graph index supports whole-run coverage, search, and filters. Long evidence and analysis text load in excerpts when opened.
+
+Each graph area contains up to 32 nodes and 64 relationships. Use **Next area** and **Previous area** to follow the filtered graph. Selecting a node centers the first area around it. The next area is prepared in memory. **Find a node or chain** searches the full inventory when the subject list is large. Traces and diagram exports cover the displayed area. The inspector includes relationships outside that area.
+
+Histories longer than 32 events, or containing more than 256 record edits, open at step zero. Moving forward applies changes incrementally and fetches nearby history in 32-event pages. Choose an earlier run under **Compare with** when you need a large comparison.
 
 ## Coverage and comparison
 

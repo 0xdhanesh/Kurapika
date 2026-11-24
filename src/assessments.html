@@ -19,7 +19,7 @@
     <div class="actions"><button id="load-example">Explore example</button><button id="paste-open">Paste JSON</button><button id="import-json" class="primary"><i data-icon="file"></i>Import JSON</button>
     <input id="json-files" type="file" accept=".json,application/json" multiple hidden></div>
   </section>
-  <p id="import-error" class="import-error" role="alert" hidden></p>
+  <p role="status" id="import-progress" hidden>Indexing assessment data in this browser…</p><p id="import-error" class="import-error" role="alert" hidden></p>
   <section class="empty-state card" id="empty-library" hidden><span class="tile"><i data-icon="network"></i></span><h2>Open your first assessment</h2>
     <p>Import a JSON graph or explore two example runs to try tracing, replay, and review.</p>
     <a href="./assessment-example.json" download>Download example JSON</a></section>
@@ -53,7 +53,7 @@
         <div class="canvas"><div id="viewport"><div id="drawing"></div></div><div id="notice" role="status" hidden></div>
           <div class="zoom"><button aria-label="Zoom out" id="minus"><i data-icon="minus"></i></button><output id="scale">100%</output><button aria-label="Zoom in" id="plus"><i data-icon="plus"></i></button><span></span><button id="fit" aria-label="Fit diagram"><i data-icon="fit"></i></button></div>
         </div>
-        <div class="graph-foot"><label>Trace<select id="trace-mode"><option value="immediate">Immediate connections</option><option value="backward">Backward · upstream</option><option value="forward">Forward · downstream</option></select></label><span id="graph-count" role="status"></span></div>
+        <div class="graph-foot"><label>Trace<select id="trace-mode"><option value="immediate">Immediate connections</option><option value="backward">Backward · upstream</option><option value="forward">Forward · downstream</option></select></label><button id="page-prev" hidden>Previous area</button><button id="page-next" hidden>Next area</button><span id="graph-count" role="status"></span></div>
         <div class="preview-foot"><span id="hint">Select a node to inspect it</span><button id="overview" hidden>Back to overview</button></div>
     <section class="timeline"><div class="section-heading"><h2>Assessment timeline</h2><output id="step-count"></output></div>
       <div class="playback"><button id="play">Play</button><button id="previous-step" aria-label="Previous event">Previous</button>
@@ -64,7 +64,7 @@
       </section>
       <aside class="panel inspector" aria-labelledby="inspector-title">
         <div class="panel-head"><h2 id="inspector-title">Inspector</h2></div>
-        <div class="inspector-body"><label>Node or chain<select id="subject"></select></label>
+        <div class="inspector-body"><label id="subject-find-label" hidden>Find a node or chain<input id="subject-find" type="search"></label><label>Node or chain<select id="subject"></select></label>
           <p id="inspect-empty" class="muted">Select a node on the graph or choose a chain above.</p>
           <div id="subject-details" hidden>
             <div id="subject-identity"></div>

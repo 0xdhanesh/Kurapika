@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { parseAssessment, snapshotAt } from '../src/assessment-format.js'
+import { importFiles, importAssessmentText } from '../src/assessment-import.js'
 import { getRun, importRuns, listReviews, listRuns, saveReview } from '../src/assessment-store.js'
 
 function sample(repository, runId, extra = {}) {
@@ -61,4 +62,17 @@ test('runs with the same timestamp retain their import order across retries', as
   const newer = sample('tied', 'a-followup', { at })
   await importRuns([older, newer, older])
   assert.deepEqual((await listRuns()).filter(run => run.repository === 'tied').map(run => run.runId), ['a-followup', 'z-original'])
+})
+
+test('large evidence survives file and pasted assessment imports intact', async () => {
+  const detail = 'A'.repeat(2_000_001)
+  const data = { repository: 'large', nodes: [{ id: 'f', evidence: ['record'] }], evidence: [{ id: 'record', detail }] }
+  const json = JSON.stringify(data)
+  await importFiles([new File([json], 'file.json')])
+  await importAssessmentText(json, 'pasted')
+  for (const id of ['file', 'pasted']) {
+    const graph = snapshotAt(await getRun('large', id))
+    assert.equal(graph.evidence.get('record').detail, detail)
+  }
+  await assert.rejects(importFiles([new File(['{}'], 'invalid.json')]), /^Error: invalid\.json: A graph requires a nodes array/)
 })

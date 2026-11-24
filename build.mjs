@@ -28,11 +28,13 @@ async function addDirectory(source, destination) {
     const path = join(source, entry.name)
     const name = destination + entry.name
     if (entry.isDirectory()) await addDirectory(path, name + '/')
-    else if (entry.isFile() && !name.endsWith('.map')) await addFile(path, name)
+    else if (entry.isFile() && !name.endsWith('.map') && !name.endsWith('.d.ts')) await addFile(path, name)
   }
 }
 
 await addDirectory('src', '')
+await addDirectory('node_modules/@streamparser/json/dist/mjs', 'vendor/streamparser/')
+await addFile('licenses/streamparser-json.txt', 'vendor/streamparser/LICENSE')
 await addFile('LICENSE', 'LICENSE')
 await addFile(vendor + '/mermaid.esm.min.mjs', 'vendor/mermaid.esm.min.mjs')
 await addDirectory(vendor + '/' + chunks, 'vendor/' + chunks + '/')

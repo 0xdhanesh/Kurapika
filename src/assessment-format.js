@@ -1,6 +1,5 @@
 // Imported runs contain observations only. Human reviews have a separate store.
 export const graphTables = ['nodes', 'relationships', 'chains']
-export const importLimit = 2_000_000
 
 function object(value, field) {
   if (!value || Array.isArray(value) || typeof value !== 'object') throw Error(field + ' must be an object.')
@@ -142,7 +141,6 @@ function changes(input, graph, catalog, initial = false) {
       return patch
     })
   }
-  if (graph.relationships.size > 10000) throw Error('A graph can contain up to 10,000 relationships.')
   checkEndpoints(graph, delta)
   return delta
 }
@@ -179,8 +177,11 @@ function normalizeRun(input, filename) {
 }
 
 export function parseAssessment(text, filename = 'graph') {
-  if (text.length > importLimit) throw Error('Assessment JSON exceeds the 2 million character limit.')
-  const data = object(JSON.parse(text), 'assessment')
+  return normalizeAssessment(JSON.parse(text), filename)
+}
+
+export function normalizeAssessment(input, filename) {
+  const data = object(input, 'assessment')
   const runs = data.runs === undefined ? [data] : list(data.runs, 'runs')
   if (!runs.length) throw Error('Include at least one run.')
   return runs.map(run => normalizeRun(run, filename))
@@ -188,12 +189,15 @@ export function parseAssessment(text, filename = 'graph') {
 
 export function snapshotAt(run, step = run.events.length) {
   const graph = emptyGraph()
-  for (const delta of [run.initial, ...run.events.slice(0, step)]) {
-    for (const table of graphTables) {
-      for (const id of delta.remove[table]) graph[table].delete(id)
-      for (const item of delta[table]) graph[table].set(item.id, { ...graph[table].get(item.id), ...item })
-    }
-  }
+  applyDelta(graph, run.initial)
+  for (let i = 0; i < step; i++) applyDelta(graph, run.events[i])
   graph.evidence = new Map(run.evidence.map(item => [item.id, item]))
   return graph
+}
+
+export function applyDelta(graph, delta) {
+  for (const table of graphTables) {
+    for (const id of delta.remove[table]) graph[table].delete(id)
+    for (const item of delta[table]) graph[table].set(item.id, { ...graph[table].get(item.id), ...item })
+  }
 }

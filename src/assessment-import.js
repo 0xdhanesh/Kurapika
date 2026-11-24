@@ -1,18 +1,45 @@
-import { importLimit, parseAssessment } from './assessment-format.js'
+import { normalizeAssessment, parseAssessment } from './assessment-format.js'
 import { importRuns } from './assessment-store.js'
 
-export async function readGraphFile(file) {
-  if (file.size > importLimit * 4) throw Error(file.name + ' exceeds the 2 million character limit.')
-  const text = await file.text()
-  if (text.length > importLimit) throw Error(file.name + ' exceeds the 2 million character limit.')
-  return text
+export function workerRequest(data) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./assessment-worker.js', import.meta.url), { type: 'module' })
+    worker.onmessage = ({ data }) => {
+      worker.terminate()
+      if (data.error) reject(Error(data.error))
+      else resolve(data)
+    }
+    worker.onerror = event => { worker.terminate(); reject(Error(event.message || 'Assessment worker failed.')) }
+    worker.postMessage(data)
+  })
+}
+
+async function readAssessment(file) {
+  const filename = file.name.replace(/\.json$/i, '')
+  if (file.size <= 512 * 1024) return parseAssessment(await file.text(), filename)
+  const { JSONParser } = typeof process === 'undefined'
+    ? await import('./vendor/streamparser/index.js') : await import('@streamparser/json')
+  const parser = new JSONParser({ paths: ['$'], stringBufferSize: 65536 })
+  let data
+  parser.onValue = entry => { data = entry.value }
+  const reader = file.stream().getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      parser.write(value)
+    }
+    if (!parser.isEnded) parser.end()
+  } finally { reader.releaseLock() }
+  return normalizeAssessment(data, filename)
 }
 
 export async function importFiles(files) {
+  if (typeof window !== 'undefined') return workerRequest({ files })
   const runs = []
   for (const file of files) {
     try {
-      runs.push(...parseAssessment(await readGraphFile(file), file.name.replace(/\.json$/i, '')))
+      for (const run of await readAssessment(file)) runs.push(run)
     } catch (error) {
       throw Error(file.name + ': ' + error.message)
     }
@@ -22,6 +49,7 @@ export async function importFiles(files) {
 }
 
 export async function importAssessmentText(text, filename) {
+  if (typeof window !== 'undefined') return workerRequest({ text, filename })
   const runs = parseAssessment(text, filename)
   await importRuns(runs)
   return runs.at(-1)

@@ -1,5 +1,5 @@
 import { isIndependent, sourceLabel } from './assessment-graph.js'
-import { element } from './assessment-ui.js'
+import { element, narrative, pagedList } from './assessment-ui.js'
 
 function externalLink(label, url) {
   const a = element('a', label)
@@ -16,6 +16,7 @@ export function inspectSubject(graph, selection, catalog, onSelect) {
   const details = document.getElementById('analysis-details')
   details.replaceChildren()
   const cited = new Map()
+  let evidenceSection
   function section(title) {
     const el = element('section')
     el.append(element('h3', title))
@@ -29,9 +30,10 @@ export function inspectSubject(graph, selection, catalog, onSelect) {
         const entry = element('details')
         entry.id = 'citation-' + cited.size
         entry.append(element('summary', evidence.label))
-        if (evidence.detail) entry.append(element('p', evidence.detail))
+        if (evidence.detail) entry.append(narrative(evidence.detail))
         if (evidence.url) entry.append(externalLink('Open evidence', evidence.url))
         cited.set(id, entry)
+        if (evidenceSection) { evidenceSection.hidden = false; evidenceSection.append(entry) }
       }
       const entry = cited.get(id)
       const a = element('a', evidence.label)
@@ -54,23 +56,23 @@ export function inspectSubject(graph, selection, catalog, onSelect) {
     const group = section(title)
     if (!edges.length) { group.append(element('p', 'None recorded.', 'muted')); return }
     const list = element('ul')
-    for (const edge of edges) {
+    group.append(list)
+    pagedList(group, edges, edge => {
       const row = element('li')
       if (endpoint) row.append(nodeButton(edge[endpoint]))
       else row.append(nodeButton(edge.source), ' → ', nodeButton(edge.target))
       row.append(' · ' + [edge.type, edge.status, edge.agent].filter(Boolean).join(' · '))
-      if (edge.reason) row.append(element('p', edge.reason))
+      if (edge.reason) row.append(narrative(edge.reason))
       else if (edge.status === 'unresolved') row.append(element('p', 'Reason not supplied.', 'muted'))
       refs(row, edge.evidence)
       list.append(row)
-    }
-    group.append(list)
+    })
   }
 
   const analysis = section('Agent analysis')
   const attribution = [item.agent, item.language].filter(Boolean).join(' · ')
   if (attribution) analysis.append(element('p', attribution, 'muted'))
-  analysis.append(element('p', item.summary || 'No summary recorded.'))
+  analysis.append(narrative(item.summary || 'No summary recorded.'))
   refs(analysis, item.evidence)
   const sources = section('Source locations')
   for (const loc of item.locations) {
@@ -84,12 +86,12 @@ export function inspectSubject(graph, selection, catalog, onSelect) {
   if (selection.table === 'chains') {
     const group = section('Chain members')
     const list = element('ol')
-    for (const id of item.members) {
+    group.append(list)
+    pagedList(group, item.members, id => {
       const member = element('li')
       member.append(nodeButton(id))
       list.append(member)
-    }
-    group.append(list)
+    })
     edges = item.relationships.map(id => graph.relationships.get(id))
     showEdges('Chain relationships', edges)
   } else {
@@ -102,12 +104,14 @@ export function inspectSubject(graph, selection, catalog, onSelect) {
   }
   const validations = section('Validation records')
   if (!item.validations.length) validations.append(element('p', 'No validations recorded.', 'muted'))
-  for (const record of item.validations) {
+  pagedList(validations, item.validations, record => {
     const line = element('p', [record.agent, record.result, record.at].filter(Boolean).join(' · '))
     if (isIndependent(item, record)) line.append(' · Independent confirmation')
-    if (record.summary) line.append(element('span', '\n' + record.summary))
+    if (record.summary) line.append(' ', narrative(record.summary))
     refs(line, record.evidence)
     validations.append(line)
-  }
-  if (cited.size) section('Evidence').append(...cited.values())
+  })
+  evidenceSection = section('Evidence')
+  evidenceSection.hidden = !cited.size
+  for (const entry of cited.values()) evidenceSection.append(entry)
 }
