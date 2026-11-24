@@ -5,8 +5,8 @@
 <h1 align="center">Kurapika</h1>
 
 <p align="center">
-  Learn how a system works by tracing its Mermaid flowchart.<br>
-  Follow a request through the services it reaches, then attach the source lines that explain each step.
+  Learn how a system works by following its connections.<br>
+  Trace a Mermaid diagram or inspect a structured graph alongside the source and evidence behind each relationship.
 </p>
 
 <p align="center">
@@ -32,6 +32,10 @@ Start with a question. In the service architecture example, select **Primary Dat
 - Mermaid source editor with line numbers, syntax highlighting, and explicit rendering.
 - Node inspection for flowcharts, including nested subgraphs. Selecting a node centers and enlarges it, highlights its immediate incoming and outgoing connections, animates connected paths, and dims unrelated nodes.
 - Forward and backward tracing across multiple flowchart edges, with per-node source references and notes.
+- JSON graph imports with stable IDs, source locations, typed relationships, evidence, and validation records.
+- An assessment inspector with callers, callees, and reasons for unresolved relationships. Filter the graph or isolate a node's connected component or a chain.
+- Coverage for functions and chains by repository and run, event-by-event replay, and comparisons with earlier runs.
+- Human review decisions and notes for individual nodes or chains, with review history preserved across imports.
 - Zoom controls, fit-to-view, and a full-width preview when the source editor is hidden.
 - Light and dark themes. Dark mode uses terminal-green selection outlines and animated paths, with translucent gray subgraph backgrounds.
 - SVG export and source copying.
@@ -48,7 +52,7 @@ Mermaid diagram types can be rendered using the bundled library. Interactive ins
 node kurapika.mjs
 ```
 
-Open http://127.0.0.1:4173/ in your browser. For a remote host, forward its loopback port to your machine (for example, run `ssh -L 4173:127.0.0.1:4173 user@host` on your machine), then open the same URL. The browser runs the editor, tracing, annotations, and SVG export. The single file includes the application, Mermaid, its diagram modules, and license notices. The host can run offline with Node as its only installed runtime.
+Open http://127.0.0.1:4173/ in your browser. For a remote host, forward its loopback port to your machine (for example, run `ssh -L 4173:127.0.0.1:4173 user@host` on your machine), then open the same URL. The browser runs the workspace. The single file includes the application, Mermaid, its diagram modules, and license notices. The host can run offline with Node as its only installed runtime.
 
 The server binds to `127.0.0.1` on port `4173` by default. Set `HOST` and `PORT` to change the listener. For browser draft continuity, reopen the same address and port in the same browser profile.
 
@@ -97,11 +101,19 @@ Selecting **API Gateway** highlights Web Client, Auth Service, and Application A
 
 With a node selected, open **Node references and notes**. Enter one file reference per line (for example, `src/router.js:42`) and add freeform notes. Edits update the Mermaid source as you type. **Copy source** carries these comments with the diagram. They are associated with the Mermaid node ID, so changing a display label preserves its notes. Clear both fields to remove the annotation.
 
+## Inspect an assessment
+
+Open **Assessments → Explore example** to load two runs of a catalog service. Select `readIndex` to find its caller, then follow `lookupBook` to inspect the call site's evidence and validation. Move the timeline back one step to see what was known before the independent check. Choose **Only unresolved relationships** under **Graph filters** to find the relationship whose target is still unknown.
+
+Use **Import JSON** to open your own graphs or run bundles. Select a repository and run to see coverage, switch **Count** between functions and chains, and choose an earlier run under **Compare with** to inspect changes. To record a decision, select a node or chain, open **Human review**, choose a status, and click **Save review**. [Assessment JSON format and review guide](docs/assessments.md) · [Example with two runs](src/assessment-example.json)
+
 ## Local processing and storage
 
 Diagram parsing and rendering happen in the browser. The application serves its Mermaid dependency from its own static assets. It has no application backend, analytics integration, or diagram upload endpoint.
 
 The theme initially follows the system preference. A manually selected theme is saved in browser local storage. Kurapika also saves the current filename and editor contents in local storage as you edit, including unfinished Mermaid, source references, and notes. Reopening the site in the same browser profile restores that draft. Choosing an example replaces the current draft. Use **Copy source** to keep a separate copy or move it to another browser. Clearing site data removes the saved draft. If browser storage is full or blocked, the editor shows a warning.
+
+The assessment library and human review history use IndexedDB in that browser profile. Reopen the same site, including its port, to access them. Imports can append observations to a run. Only **Save review** can add a human decision. Clearing site data removes the library and reviews.
 
 Mermaid is initialized with strict security settings and HTML labels disabled. The page includes a Content Security Policy. Rendering untrusted input still depends on Mermaid and the browser's behavior.
 
@@ -136,7 +148,11 @@ The workflow waits up to 60 seconds for the expected artifact ID to appear. If d
 | Path | Purpose |
 | --- | --- |
 | `src/index.html` | Workspace markup and Content Security Policy |
-| `src/app.js` | Rendering, theme configuration, zoom, focus, and export |
+| `src/app.js` | Mermaid editor, file import, draft, and node annotations |
+| `src/diagram.js`, `src/viewport.js` | Shared Mermaid rendering, theme, export, zoom, and focus |
+| `src/assessments.html`, `src/assessments.js` | Assessment workspace, inspector, filters, and timeline |
+| `src/assessment-format.js`, `src/assessment-graph.js` | JSON validation, replay, graph projection, coverage, and comparison |
+| `src/assessment-store.js` | Local assessment library and human review history |
 | `src/inspect.js` | Node adjacency, selection, and edge animation |
 | `src/annotations.js` | Node annotation comments in Mermaid source |
 | `src/theme.js` | Theme initialization before stylesheet rendering |
