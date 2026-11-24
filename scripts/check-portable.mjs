@@ -36,6 +36,8 @@ try {
   for (const [path, original] of files) {
     const response = await fetch(new URL(path, origin))
     assert.equal(response.status, 200, path)
+    if (path.endsWith('.json')) assert.match(response.headers.get('content-type'), /application\/json/)
+    if (path.endsWith('.html')) assert.match(response.headers.get('content-type'), /text\/html/)
     if (/\.m?js$/.test(path)) assert.match(response.headers.get('content-type'), /javascript/)
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(original), path)
   }

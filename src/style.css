@@ -740,3 +740,35 @@ footer svg.icon {
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+
+.workspace-nav {
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.workspace-nav a {
+  color:var(--muted);
+  font-size:.85rem;
+  text-decoration:none;
+  padding:6px 10px;
+  border-radius:6px;
+}
+.workspace-nav a[aria-current],.workspace-nav a:hover {
+  color:var(--accent);
+  background:var(--hover);
+}
+.workspace-nav + #theme-switch { margin-left:auto; }
+.import-error {
+  border:1px solid var(--line);
+  border-left:3px solid #bd645a;
+  padding:9px 13px;
+  margin:0 0 12px;
+  background:var(--surface);
+  overflow-wrap:anywhere;
+}
+@media(max-width:620px) {
+  .workspace-nav a { padding:5px; font-size:.76rem; }
+  .nav .docs { font-size:0; gap:0; }
+  .nav .docs svg:last-child,.nav .divider { display:none; }
+  .nav { gap:7px; }
+}

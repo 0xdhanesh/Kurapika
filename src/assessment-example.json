@@ -1,0 +1,52 @@
+{
+  "runs": [
+    {
+      "repository": "example/catalog",
+      "runId": "initial-index",
+      "at": "2026-06-01T09:00:00Z",
+      "nodes": [
+        {"id": "lookup", "symbol": "lookupBook", "file": "src/catalog.ts", "line": 12, "language": "TypeScript", "agent": "indexer"},
+        {"id": "index", "symbol": "readIndex", "file": "src/index.ts", "line": 5, "language": "TypeScript"},
+        {"id": "legacy", "symbol": "readLegacy", "file": "src/legacy.ts", "line": 3, "language": "TypeScript"}
+      ],
+      "relationships": [
+        {"id": "lookup-index", "source": "lookup", "target": "index", "type": "calls", "status": "unresolved", "reason": "The initial index contains only the function declarations."}
+      ],
+      "chains": [{"id": "book-request", "symbol": "Book request", "members": ["lookup", "index"], "relationships": ["lookup-index"], "status": "unresolved"}]
+    },
+    {
+      "repository": "example/catalog",
+      "runId": "catalog-review",
+      "at": "2026-06-02T09:00:00Z",
+      "evidence": [
+        {"id": "call-site", "label": "Catalog lookup, lines 14–16", "detail": "const book = readIndex(isbn);\nreturn book ?? fallback(isbn);"},
+        {"id": "lookup-test", "label": "Exact-match test record", "detail": "With a populated index, lookupBook returned the expected title and readIndex was called once."},
+        {"id": "config", "label": "Fallback configuration", "detail": "The fallback adapter is supplied by the deployment configuration. This fixture contains no adapter binding."}
+      ],
+      "nodes": [
+        {"id": "lookup", "symbol": "lookupBook", "locations": [{"file": "src/catalog.ts", "line": 12, "endLine": 17}], "language": "TypeScript", "agent": "reader"},
+        {"id": "index", "symbol": "readIndex", "file": "src/index.ts", "line": 5, "language": "TypeScript"},
+        {"id": "metrics", "symbol": "flushMetrics", "file": "tools/metrics.py", "line": 8, "language": "Python", "status": "blocked", "agent": "reader", "summary": "The metrics fixture is missing."}
+      ],
+      "relationships": [
+        {"id": "lookup-index", "source": "lookup", "target": "index", "type": "calls", "status": "unresolved", "reason": "Awaiting the call-site review."}
+      ],
+      "chains": [{"id": "book-request", "symbol": "Book request", "members": ["lookup", "index"], "relationships": ["lookup-index"], "status": "unresolved", "agent": "reader"}],
+      "events": [
+        {
+          "at": "2026-06-02T09:04:00Z", "agent": "reader", "summary": "Read the lookup implementation and identify the fallback.",
+          "nodes": [{"id": "lookup", "status": "analyzed", "summary": "Reads the index before trying a configurable fallback.", "evidence": ["call-site"]}],
+          "relationships": [
+            {"id": "lookup-index", "status": "resolved", "reason": "", "agent": "reader", "evidence": ["call-site"]},
+            {"id": "lookup-fallback", "source": "lookup", "target": null, "type": "delegates", "status": "unresolved", "reason": "The runtime binding is absent from this checkout.", "agent": "reader", "evidence": ["config"]}
+          ],
+          "chains": [{"id": "book-request", "relationships": ["lookup-index", "lookup-fallback"], "summary": "The index path is identified. The fallback remains open."}]
+        },
+        {
+          "at": "2026-06-02T09:12:00Z", "agent": "verifier", "summary": "Independently confirm the index lookup using the exact-match test.",
+          "nodes": [{"id": "lookup", "status": "validated", "validations": [{"at": "2026-06-02T09:12:00Z", "agent": "verifier", "result": "confirmed", "summary": "Confirmed the index call for an existing title.", "evidence": ["lookup-test"]}]}]
+        }
+      ]
+    }
+  ]
+}

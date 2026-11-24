@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Graph assessments · Kurapika</title>
+  <script src="./theme.js"></script>
+  <link rel="icon" type="image/png" href="./logo.png">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./assessment.css">
+</head>
+<body>
+<header><div class="nav">
+  <a class="brand" href="./"><img src="./logo.png" width="32" height="32" alt="">Kurapika</a><span class="divider"></span>
+  <nav class="workspace-nav" aria-label="Workspace"><a href="./">Mermaid editor</a><a href="./assessments.html" aria-current="page">Assessments</a></nav>
+  <button id="theme-switch" aria-label="Dark theme" aria-pressed="false"><span class="moon"><i data-icon="moon"></i></span><span class="sun"><i data-icon="sun"></i></span></button>
+</div></header>
+<main class="assessment">
+  <section class="intro"><div><h1>Graph assessments</h1><p>Trace relationships, inspect evidence, and review changes across runs.</p></div>
+    <div class="actions"><button id="load-example">Explore example</button><button id="paste-open">Paste JSON</button><button id="import-json" class="primary"><i data-icon="file"></i>Import JSON</button>
+    <input id="json-files" type="file" accept=".json,application/json" multiple hidden></div>
+  </section>
+  <p id="import-error" class="import-error" role="alert" hidden></p>
+  <section class="empty-state card" id="empty-library" hidden><span class="tile"><i data-icon="network"></i></span><h2>Open your first assessment</h2>
+    <p>Import a JSON graph or explore two example runs to try tracing, replay, and review.</p>
+    <a href="./assessment-example.json" download>Download example JSON</a></section>
+  <div id="assessment-content" hidden>
+    <section class="card coverage" aria-labelledby="coverage-title">
+      <div class="scope-row">
+        <h2 id="coverage-title">Run coverage</h2>
+        <label>Repository<select id="repository"></select></label>
+        <label>Assessment run<select id="run"></select></label>
+        <label>Compare with<select id="baseline"></select></label>
+        <label>Count<select id="coverage-kind"><option value="nodes">Functions</option><option value="chains">Chains</option></select></label>
+      </div>
+      <dl class="metrics" id="metrics" aria-live="polite"></dl>
+    </section>
+    <details class="card filters"><summary>Graph filters</summary>
+      <div class="filter-grid">
+        <label>Function or ID<input id="filter-symbol" type="search" placeholder="Search symbols"></label>
+        <label>File<select id="filter-file"></select></label><label>Language<select id="filter-language"></select></label>
+        <label>Node status<select id="filter-status"></select></label><label>Agent<select id="filter-agent"></select></label>
+        <label>Relationship type<select id="filter-type"></select></label>
+      </div>
+      <div class="filter-options">
+        <label><input type="checkbox" id="filter-unresolved">Only unresolved relationships</label>
+        <label><input type="checkbox" id="filter-isolate" disabled>Hide unrelated subgraphs</label>
+        <button id="clear-filters" class="quiet">Clear filters</button>
+      </div>
+    </details>
+    <div class="assessment-grid">
+      <section class="panel preview"><div class="panel-head"><div class="heading"><span class="tile"><i data-icon="network"></i></span><h2>Assessment graph</h2></div>
+        <div class="exports"><button id="export-mmd" disabled>Export Mermaid</button><button id="export-svg" disabled>Export SVG</button></div></div>
+        <div class="canvas"><div id="viewport"><div id="drawing"></div></div><div id="notice" role="status" hidden></div>
+          <div class="zoom"><button aria-label="Zoom out" id="minus"><i data-icon="minus"></i></button><output id="scale">100%</output><button aria-label="Zoom in" id="plus"><i data-icon="plus"></i></button><span></span><button id="fit" aria-label="Fit diagram"><i data-icon="fit"></i></button></div>
+        </div>
+        <div class="graph-foot"><label>Trace<select id="trace-mode"><option value="immediate">Immediate connections</option><option value="backward">Backward · upstream</option><option value="forward">Forward · downstream</option></select></label><span id="graph-count" role="status"></span></div>
+        <div class="preview-foot"><span id="hint">Select a node to inspect it</span><button id="overview" hidden>Back to overview</button></div>
+    <section class="timeline"><div class="section-heading"><h2>Assessment timeline</h2><output id="step-count"></output></div>
+      <div class="playback"><button id="play">Play</button><button id="previous-step" aria-label="Previous event">Previous</button>
+        <input type="range" id="step" aria-label="Timeline position" min="0" value="0" step="1">
+        <button id="next-step" aria-label="Next event">Next</button></div>
+      <p id="event-summary" aria-live="polite"></p>
+    </section>
+      </section>
+      <aside class="panel inspector" aria-labelledby="inspector-title">
+        <div class="panel-head"><h2 id="inspector-title">Inspector</h2></div>
+        <div class="inspector-body"><label>Node or chain<select id="subject"></select></label>
+          <p id="inspect-empty" class="muted">Select a node on the graph or choose a chain above.</p>
+          <div id="subject-details" hidden>
+            <div id="subject-identity"></div>
+            <div class="inspector-tabs" role="group" aria-label="Inspector view"><button id="analysis-tab" aria-pressed="true" aria-controls="analysis-details">Analysis</button><button id="review-tab" aria-pressed="false" aria-controls="human-review">Human review</button></div>
+            <div id="analysis-details"></div>
+            <section id="human-review" class="human-review" hidden>
+              <p id="review-origin" class="muted"></p>
+              <form id="review-form"><label>Decision<select id="decision"><option value="">Unreviewed</option><option value="reviewed">Reviewed</option><option value="disputed">Disputed</option><option value="needs-investigation">Needs investigation</option></select></label>
+                <label>Source references<textarea id="review-refs" rows="2" placeholder="One reference per line"></textarea></label>
+                <label>Review notes<textarea id="review-notes" rows="3"></textarea></label>
+                <button type="submit" class="primary" id="save-review">Save review</button>
+              </form>
+              <p id="review-feedback" role="status"></p>
+              <details id="review-history"><summary>Review history</summary><ul></ul></details>
+            </section>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <section class="card comparison"><h2>Run comparison</h2><p id="comparison-caption"></p>
+      <div id="diff-list" class="diff-list"></div>
+    </section>
+  </div>
+  <footer><span><i data-icon="shield"></i>Local processing</span><a href="./assessment-example.json" download>Example JSON</a></footer>
+</main>
+<dialog id="paste-dialog"><form method="dialog" id="paste-form"><h2>Import assessment JSON</h2>
+  <label>Graph or run bundle<textarea id="paste-text" rows="12" spellcheck="false" required></textarea></label>
+  <p id="paste-error" role="alert" hidden></p>
+  <div class="actions"><button type="button" id="paste-cancel">Cancel</button><button type="submit" class="primary">Import</button></div>
+</form></dialog>
+<script type="module" src="./assessments.js"></script>
+</body></html>

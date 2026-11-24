@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "mermaid": "11.17.2"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.8"
   }
 }

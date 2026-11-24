@@ -8,14 +8,15 @@
   <link rel="icon" type="image/png" href="./logo.png"><link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<header><div class="nav"><a class="brand" href="./"><img src="./logo.png" width="32" height="32" alt="">Kurapika</a><span class="divider"></span><span class="nav-label">Mermaid Studio</span>
+<header><div class="nav"><a class="brand" href="./"><img src="./logo.png" width="32" height="32" alt="">Kurapika</a><span class="divider"></span><nav class="workspace-nav" aria-label="Workspace"><a href="./" aria-current="page">Mermaid editor</a><a href="./assessments.html">Assessments</a></nav>
 <a class="docs" href="https://mermaid.js.org/intro/syntax-reference.html" target="_blank" rel="noreferrer"><i data-icon="book"></i>Syntax guide<i data-icon="external"></i></a>
 <button id="theme-switch" aria-label="Dark theme" aria-pressed="false" title="Switch to dark theme">
   <span class="moon"><i data-icon="moon"></i></span><span class="sun"><i data-icon="sun"></i></span>
 </button></div></header>
 <main>
   <section class="intro"><div><h1>Diagram workspace</h1><p>Render Mermaid diagrams and explore their connections.</p></div>
-  <div class="actions"><button id="toggle-source" aria-expanded="true" aria-controls="source-panel"><i data-icon="code"></i><span>Hide source</span></button><div class="examples"><button id="examples" aria-expanded="false" aria-controls="menu"><i data-icon="layers"></i>Examples<i data-icon="chevron"></i></button><div id="menu" hidden></div></div><button id="export" disabled><i data-icon="download"></i>Export SVG</button></div></section>
+  <div class="actions"><button id="open-graph"><i data-icon="file"></i>Import graph</button><input id="graph-file" type="file" accept=".json,.mmd,.mermaid,application/json" hidden><button id="toggle-source" aria-expanded="true" aria-controls="source-panel"><i data-icon="code"></i><span>Hide source</span></button><div class="examples"><button id="examples" aria-expanded="false" aria-controls="menu"><i data-icon="layers"></i>Examples<i data-icon="chevron"></i></button><div id="menu" hidden></div></div><button id="export" disabled><i data-icon="download"></i>Export SVG</button></div></section>
+  <p id="import-error" class="import-error" role="alert" hidden></p>
   <div class="workspace" id="workspace">
   <section class="panel source" id="source-panel"><div class="panel-head"><div class="heading"><span class="tile"><i data-icon="code"></i></span><h2>Source editor</h2></div><button class="icon-only" id="copy" title="Copy source" aria-label="Copy source"><i data-icon="copy"></i></button></div>
   <div class="file"><i data-icon="file"></i><span id="filename">architecture.mmd</span></div>

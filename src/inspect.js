@@ -1,7 +1,7 @@
 import { createTracer } from './trace.js'
 
 // Mermaid's layout model preserves parallel edges, explicit edge IDs and subgraphs.
-export function attachInspector(svg, layout, hint, onFocus) {
+export function attachInspector(svg, layout, hint, onFocus, canInspect = () => true) {
   const nodes = new Map()
   const elements = new Map(Array.from(svg.querySelectorAll('g.node, g.cluster'), el => [el.id, el]))
   for (const { id, domId } of layout?.nodes ?? []) {
@@ -39,6 +39,8 @@ export function attachInspector(svg, layout, hint, onFocus) {
     paint()
   }
   for (const [id, node] of nodes) {
+    if (!canInspect(id)) continue
+    node.dataset.inspectId = id
     node.classList.add('inspectable')
     node.setAttribute('tabindex', '0')
     node.setAttribute('role', 'button')

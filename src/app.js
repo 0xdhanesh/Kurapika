@@ -1,5 +1,6 @@
 import './icons.js'
-import mermaid from './vendor/mermaid.esm.min.mjs'
+import { bindTheme, downloadFile, limit, renderDiagram } from './diagram.js'
+import { bindViewport } from './viewport.js'
 import { readAnnotations, withAnnotations } from './annotations.js'
 import { readDraft, saveDraft } from './draft.js'
 import { examples } from './examples.js'
@@ -9,40 +10,13 @@ const $ = id => document.getElementById(id)
 const editor = $('source')
 const drawing = $('drawing')
 const viewport = $('viewport')
-const limit = 2_000_000
-function configureTheme() {
-  const dark = document.documentElement.dataset.theme === 'dark'
-  const colors = dark ? {
-    darkMode: true, background: '#101515', primaryColor: '#24312e',
-    primaryBorderColor: '#719184', primaryTextColor: '#e2ebe6',
-    secondaryColor: '#2c3939', tertiaryColor: '#303736',
-    textColor: '#e2ebe6', lineColor: '#98aca3', edgeLabelBackground: '#202825',
-    clusterBkg: '#353b3a', clusterBorder: '#78837f'
-  } : {
-    primaryColor: '#f0ecff', primaryBorderColor: '#9884cf', primaryTextColor: '#302449',
-    lineColor: '#8b8c9f', edgeLabelBackground: '#fdfdfe', background: '#ffffff'
-  }
-  const shapeStyles = dark
-    ? '.entry .label-container{fill:#263931;stroke:#79a48c}.service .label-container{fill:#24343a;stroke:#749ba6}.storage .label-container{fill:#363329;stroke:#a49b75}.cluster rect{fill:rgba(220,227,224,.12)!important;stroke:#74827b}'
-    : '.entry .label-container{fill:#ece6ff;stroke:#9981d2}.service .label-container{fill:#e7f3f2;stroke:#77aba7}.storage .label-container{fill:#fff2da;stroke:#c5a46e}'
-  mermaid.initialize({
-    startOnLoad: false, securityLevel: 'strict', suppressErrorRendering: true,
-    maxTextSize: limit, maxEdges: 10000, htmlLabels: false, theme: 'base',
-    themeVariables: { fontFamily: 'Inter, system-ui, sans-serif', fontSize: '16px', ...colors },
-    themeCSS: shapeStyles + '.node rect.label-container{rx:7px;ry:7px}.edgeLabel{font-size:13px}',
-    flowchart: { curve: 'basis', rankSpacing: 42, nodeSpacing: 56, padding: 18 }
-  })
-  $('theme-switch').setAttribute('aria-pressed', String(dark))
-  $('theme-switch').title = dark ? 'Switch to light theme' : 'Switch to dark theme'
-}
-configureTheme()
 let busy = false
+let pendingRender
 let renderedSource = ''
 let rawSvg = ''
-let zoom = 1
-let focusRegion = null
 let annotations
 let inspector
+const view = bindViewport(() => inspector?.clear())
 let copyTimer
 function status(value, ok = false) {
   $('state').textContent = value
@@ -91,40 +65,6 @@ function syncScroll() {
   $('highlight').scrollTop = $('gutter').scrollTop = editor.scrollTop
   $('highlight').scrollLeft = editor.scrollLeft
 }
-function resize() {
-  const svg = drawing.firstElementChild
-  if (!svg) return
-  const box = svg.viewBox.baseVal
-  const width = Math.max(1, viewport.clientWidth - 54)
-  const height = Math.max(1, viewport.clientHeight - 87)
-  const overviewScale = Math.min(width / box.width, height / box.height, 1.65)
-  let scale = overviewScale
-  if (focusRegion) {
-    const { radiusX, radiusY, nodeWidth, nodeHeight } = focusRegion
-    const neighborhoodScale = Math.min(width / (2 * radiusX), height / (2 * radiusY))
-    // A distant neighbor must not shrink the selected label to a few pixels.
-    const readableScale = Math.min(1.2, width / nodeWidth, height / nodeHeight)
-    scale = Math.min(2, Math.max(readableScale, neighborhoodScale))
-    // Extra scroll space lets even the first or last node sit at the center.
-    drawing.style.padding = viewport.clientHeight / 2 + 'px ' + viewport.clientWidth / 2 + 'px'
-  } else {
-    drawing.style.padding = ''
-  }
-  scale *= zoom
-  svg.style.width = Math.max(1, box.width * scale) + 'px'
-  svg.style.height = Math.max(1, box.height * scale) + 'px'
-  $('scale').value = Math.round(scale / overviewScale * 100) + '%'
-  if (focusRegion) {
-    const rect = svg.getBoundingClientRect()
-    const frame = viewport.getBoundingClientRect()
-    viewport.scrollLeft += rect.left + rect.width * focusRegion.x - frame.left - viewport.clientWidth / 2
-    viewport.scrollTop += rect.top + rect.height * focusRegion.y - frame.top - viewport.clientHeight / 2
-  }
-}
-function setZoom(value) {
-  zoom = Math.max(.25, Math.min(32, value))
-  resize()
-}
 function updateAnnotationAccess() {
   const locked = busy || editor.value !== renderedSource
   $('references').disabled = $('notes').disabled = locked
@@ -137,35 +77,13 @@ function focusNeighborhood(node, neighbors, id) {
   $('references').value = record?.references ?? ''
   $('notes').value = record?.notes ?? ''
   updateAnnotationAccess()
-  focusRegion = null
-  if (node) {
-    // Screen bounds include every nested Mermaid group transform.
-    const svg = drawing.firstElementChild
-    const rect = svg.getBoundingClientRect()
-    const units = svg.viewBox.baseVal.width / rect.width
-    const target = node.getBoundingClientRect()
-    const cx = target.left + target.width / 2
-    const cy = target.top + target.height / 2
-    let radiusX = 1
-    let radiusY = 1
-    for (const neighbor of neighbors) {
-      const bounds = neighbor.getBoundingClientRect()
-      radiusX = Math.max(radiusX, cx - bounds.left, bounds.right - cx)
-      radiusY = Math.max(radiusY, cy - bounds.top, bounds.bottom - cy)
-    }
-    focusRegion = {
-      x: (cx - rect.left) / rect.width,
-      y: (cy - rect.top) / rect.height,
-      nodeWidth: Math.max(1, target.width * units),
-      nodeHeight: Math.max(1, target.height * units),
-      radiusX: radiusX * units, radiusY: radiusY * units
-    }
-  }
-  $('overview').hidden = !node
-  setZoom(1)
+  view.focus(node, neighbors)
 }
 async function render(source = editor.value, previousView = null) {
-  if (busy) return
+  if (busy) {
+    pendingRender = { source, previousView }
+    return
+  }
   busy = true
   updateAnnotationAccess()
   $('theme-switch').disabled = true
@@ -176,9 +94,7 @@ async function render(source = editor.value, previousView = null) {
     if (!source.trim()) throw Error('Enter Mermaid code to render a diagram.')
     if (source.length > limit) throw Error('Diagram exceeds the 2 million character limit.')
     annotations = readAnnotations(source)
-    const { svg } = await mermaid.render('mermaid-preview', annotations.diagram)
-    const parsed = await mermaid.mermaidAPI.getDiagramFromText(annotations.diagram)
-    const layout = parsed.db.getData?.()
+    const { svg, layout } = await renderDiagram(annotations.diagram)
     drawing.innerHTML = svg
     rawSvg = svg
     renderedSource = source
@@ -187,7 +103,7 @@ async function render(source = editor.value, previousView = null) {
     inspector.setMode($('trace-mode').value)
     if (previousView) {
       inspector.restore(previousView.selected)
-      setZoom(previousView.zoom)
+      view.setZoom(previousView.zoom)
       viewport.scrollTo(previousView.left, previousView.top)
     }
     status(source === editor.value ? 'Rendered' : 'Edited', source === editor.value)
@@ -206,6 +122,11 @@ async function render(source = editor.value, previousView = null) {
     $('theme-switch').disabled = false
     $('render').disabled = busy = false
     updateAnnotationAccess()
+    if (pendingRender) {
+      const next = pendingRender
+      pendingRender = null
+      render(next.source, next.previousView)
+    }
   }
 }
 $('trace-mode').onchange = () => inspector?.setMode($('trace-mode').value)
@@ -240,8 +161,46 @@ function load(example) {
   $('filename').textContent = example.file
   editor.scrollTop = editor.scrollLeft = 0
   refreshEditor()
-  render()
+  if (editor.value.trimStart().startsWith('{')) {
+    status('JSON draft')
+    $('hint').textContent = 'Choose Render to open this assessment.'
+  } else render()
 }
+async function openAssessment(text, filename) {
+  const { importAssessmentText, assessmentURL } = await import('./assessment-import.js')
+  const run = await importAssessmentText(text, filename)
+  location.assign(assessmentURL(run))
+}
+
+function importError(error) {
+  $('import-error').textContent = error.message
+  $('import-error').hidden = false
+}
+
+$('open-graph').onclick = () => $('graph-file').click()
+$('graph-file').onchange = async event => {
+  const [file] = event.target.files
+  event.target.value = ''
+  if (!file) return
+  $('import-error').hidden = true
+  try {
+    const { readGraphFile } = await import('./assessment-import.js')
+    const text = await readGraphFile(file)
+    if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
+      await openAssessment(text, file.name.replace(/\.json$/i, ''))
+    } else {
+      load({ file: file.name, source: text })
+      scheduleSave()
+    }
+  } catch (error) { importError(error) }
+}
+
+function renderEditor() {
+  $('import-error').hidden = true
+  if (editor.value.trimStart().startsWith('{')) openAssessment(editor.value, 'graph').catch(importError)
+  else render()
+}
+
 for (const example of examples) {
   const btn = document.createElement('button')
   btn.textContent = example.name
@@ -269,7 +228,7 @@ document.addEventListener('keydown', event => {
   }
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
     event.preventDefault()
-    render()
+    renderEditor()
   }
 })
 $('shortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ ↵' : 'Ctrl ↵'
@@ -278,31 +237,19 @@ editor.addEventListener('input', () => {
   scheduleSave()
 })
 editor.addEventListener('scroll', syncScroll)
-$('render').onclick = () => render()
-viewport.onclick = () => inspector?.clear()
-$('plus').onclick = () => setZoom(zoom * 1.25)
-$('minus').onclick = () => setZoom(zoom / 1.25)
-$('fit').onclick = () => {
-  inspector?.clear()
-  setZoom(1)
-}
-$('theme-switch').onclick = () => {
-  const root = document.documentElement
-  root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'
-  try { localStorage.setItem('kurapika-theme', root.dataset.theme) } catch { /* Session-only preference. */ }
-  configureTheme()
+$('render').onclick = renderEditor
+bindTheme(() => {
   if (rawSvg) render(renderedSource, {
-    selected: inspector?.selected, zoom, left: viewport.scrollLeft, top: viewport.scrollTop
+    selected: inspector?.selected, zoom: view.zoom, left: viewport.scrollLeft, top: viewport.scrollTop
   })
-}
-$('overview').onclick = () => inspector?.clear()
+})
 $('toggle-source').onclick = () => {
   const hidden = !$('source-panel').hidden
   $('source-panel').hidden = hidden
   $('workspace').classList.toggle('source-hidden', hidden)
   $('toggle-source').setAttribute('aria-expanded', String(!hidden))
   $('toggle-source').querySelector('span').textContent = hidden ? 'Show source' : 'Hide source'
-  resize()
+  view.resize()
   if (!hidden) syncScroll()
 }
 $('copy').onclick = async () => {
@@ -320,12 +267,7 @@ $('copy').onclick = async () => {
 }
 const copyIcon = $('copy').firstElementChild.cloneNode(true)
 $('export').onclick = () => {
-  const url = URL.createObjectURL(new Blob([rawSvg], {type:'image/svg+xml'}))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = $('filename').textContent.replace(/\.mmd$/, '.svg')
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const filename = $('filename').textContent.replace(/\.[^.]+$/, '') + '.svg'
+  downloadFile(filename, rawSvg, 'image/svg+xml')
 }
-new ResizeObserver(resize).observe(viewport.parentElement)
 load(readDraft() ?? examples[0])
