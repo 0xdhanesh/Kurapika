@@ -37,12 +37,17 @@ function configureTheme() {
 }
 configureTheme()
 let busy = false
+let pendingRender = null
+let renderTimer = null
+let focusEntryNext = false
+let preserveZoom = false
 let renderedSource = ''
 let rawSvg = ''
 let zoom = 1
 let focusRegion = null
 let annotations
 let inspector
+let renderSerial = 0
 let copyTimer
 function status(value, ok = false) {
   $('state').textContent = value
@@ -162,10 +167,24 @@ function focusNeighborhood(node, neighbors, id) {
     }
   }
   $('overview').hidden = !node
-  setZoom(1)
+  if (preserveZoom) {
+    preserveZoom = false
+    resize()
+  } else setZoom(1)
 }
-async function render(source = editor.value, previousView = null) {
-  if (busy) return
+function showRenderError(error) {
+  $('notice').textContent = (error.message || String(error)).slice(0, 1800)
+  $('notice').hidden = false
+  $('hint').textContent = 'Edit the source and render again'
+  status('Render error')
+}
+async function render(source = editor.value, previousView = null, options = {}) {
+  const live = options.live ?? false
+  const focusEntry = options.focusEntry ?? false
+  if (busy) {
+    pendingRender = { source, previousView, options: { live, focusEntry } }
+    return
+  }
   busy = true
   updateAnnotationAccess()
   $('theme-switch').disabled = true
@@ -173,40 +192,77 @@ async function render(source = editor.value, previousView = null) {
   $('notice').hidden = true
   status('Rendering')
   try {
-    if (!source.trim()) throw Error('Enter Mermaid code to render a diagram.')
+    if (!source.trim()) {
+      if (!live) throw Error('Enter Mermaid code to render a diagram.')
+      drawing.replaceChildren()
+      focusNeighborhood(null, [])
+      rawSvg = ''
+      renderedSource = source
+      inspector = null
+      $('export').disabled = true
+      status('Edited')
+      return
+    }
     if (source.length > limit) throw Error('Diagram exceeds the 2 million character limit.')
+    const previousSelected = inspector?.selected
     annotations = readAnnotations(source)
-    const { svg } = await mermaid.render('mermaid-preview', annotations.diagram)
+    // A fresh id keeps Mermaid from deleting the SVG already on screen when parsing fails.
+    const { svg } = await mermaid.render('mermaid-preview-' + ++renderSerial, annotations.diagram)
     const parsed = await mermaid.mermaidAPI.getDiagramFromText(annotations.diagram)
     const layout = parsed.db.getData?.()
     drawing.innerHTML = svg
     rawSvg = svg
     renderedSource = source
     inspector = attachInspector(drawing.firstElementChild, layout, $('hint'), focusNeighborhood)
-    focusNeighborhood(null, [])
     inspector.setMode($('trace-mode').value)
     if (previousView) {
+      focusNeighborhood(null, [])
       inspector.restore(previousView.selected)
       setZoom(previousView.zoom)
       viewport.scrollTo(previousView.left, previousView.top)
+    } else if (!focusEntry && previousSelected && inspector.has(previousSelected)) {
+      preserveZoom = true
+      inspector.restore(previousSelected)
+    } else {
+      const node = inspector.focusEntry()
+      if (node && focusEntry) node.focus({ preventScroll: true })
+      else if (!node) focusNeighborhood(null, [])
     }
     status(source === editor.value ? 'Rendered' : 'Edited', source === editor.value)
     $('export').disabled = false
   } catch (error) {
+    if (live && rawSvg) {
+      showRenderError(error)
+      return
+    }
     drawing.replaceChildren()
     focusNeighborhood(null, [])
     rawSvg = ''
     inspector = null
     $('export').disabled = true
-    $('notice').textContent = (error.message || String(error)).slice(0, 1800)
-    $('notice').hidden = false
-    $('hint').textContent = 'Edit the source and render again'
-    status('Render error')
+    showRenderError(error)
   } finally {
     $('theme-switch').disabled = false
     $('render').disabled = busy = false
     updateAnnotationAccess()
+    const next = pendingRender
+    pendingRender = null
+    if (next) render(next.source, next.previousView, next.options)
   }
+}
+function scheduleRender(immediate) {
+  clearTimeout(renderTimer)
+  renderTimer = setTimeout(() => {
+    renderTimer = null
+    if (editor.value === renderedSource) {
+      focusEntryNext = false
+      $('notice').hidden = true
+      return
+    }
+    const focusEntry = focusEntryNext
+    focusEntryNext = false
+    render(editor.value, null, { live: true, focusEntry })
+  }, immediate ? 0 : 450)
 }
 $('trace-mode').onchange = () => inspector?.setMode($('trace-mode').value)
 function updateAnnotation() {
@@ -236,11 +292,13 @@ function closeMenu() {
   $('examples').setAttribute('aria-expanded', 'false')
 }
 function load(example) {
+  clearTimeout(renderTimer)
+  focusEntryNext = false
   editor.value = example.source
   $('filename').textContent = example.file
   editor.scrollTop = editor.scrollLeft = 0
   refreshEditor()
-  render()
+  render(editor.value, null, { focusEntry: true })
 }
 for (const example of examples) {
   const btn = document.createElement('button')
@@ -269,16 +327,31 @@ document.addEventListener('keydown', event => {
   }
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
     event.preventDefault()
-    render()
+    clearTimeout(renderTimer)
+    const focusEntry = focusEntryNext
+    focusEntryNext = false
+    render(editor.value, null, { focusEntry })
   }
 })
 $('shortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ ↵' : 'Ctrl ↵'
+let enteredChart = false
+editor.addEventListener('paste', () => { enteredChart = true })
+editor.addEventListener('drop', () => { enteredChart = true })
 editor.addEventListener('input', () => {
   refreshEditor()
   scheduleSave()
+  const lineDelta = Math.abs(editor.value.split('\n').length - renderedSource.split('\n').length)
+  if (enteredChart || lineDelta >= 3) focusEntryNext = true
+  enteredChart = false
+  if (!editor.value.trim() && !rawSvg && !renderedSource) return
+  scheduleRender(focusEntryNext)
 })
 editor.addEventListener('scroll', syncScroll)
-$('render').onclick = () => render()
+$('render').onclick = () => {
+  clearTimeout(renderTimer)
+  focusEntryNext = false
+  render()
+}
 viewport.onclick = () => inspector?.clear()
 $('plus').onclick = () => setZoom(zoom * 1.25)
 $('minus').onclick = () => setZoom(zoom / 1.25)

@@ -29,7 +29,7 @@ Start with a question. In the service architecture example, select **Primary Dat
 
 ## Features
 
-- Mermaid source editor with line numbers, syntax highlighting, and explicit rendering.
+- Mermaid source editor with line numbers and syntax highlighting. A chart renders on its own, and the view moves to the function entry point.
 - Node inspection for flowcharts, including nested subgraphs. Selecting a node centers and enlarges it, highlights its immediate incoming and outgoing connections, animates connected paths, and dims unrelated nodes.
 - Forward and backward tracing across multiple flowchart edges, with per-node source references and notes.
 - Zoom controls, fit-to-view, and a full-width preview when the source editor is hidden.
@@ -59,8 +59,8 @@ The build copies the application and Mermaid's browser modules into `dist/`. Run
 
 ## Use the workspace
 
-1. Paste Mermaid code into the source editor or select an example.
-2. Click **Render**, or press **Cmd+Enter** on macOS or **Ctrl+Enter** on other platforms.
+1. Paste Mermaid code into the source editor or select an example. The diagram renders on its own and the view moves to the entry point, the start of the flow.
+2. Click **Render**, or press **Cmd+Enter** on macOS or **Ctrl+Enter** on other platforms, to render the current source again.
 3. Click a flowchart node to focus on it and its immediate connections. Keyboard users can focus a node and press **Enter** or **Space**.
 4. Use **Hide source** to expand the preview. Use the zoom controls to adjust the view.
 5. Click the selected node again, click empty canvas space, press **Escape**, or choose **Back to overview** to clear selection. **Fit diagram** also returns to the overview.

@@ -1,5 +1,16 @@
 import { createTracer } from './trace.js'
 
+// The function entry is a source node. A node marked with the `entry` class wins when several sources exist.
+export function chooseEntryId(nodes, edges) {
+  const incoming = new Set()
+  for (const edge of edges) if (edge?.end != null) incoming.add(edge.end)
+  const ordered = nodes.filter(node => node && !node.cluster)
+  if (!ordered.length) return null
+  const roots = ordered.filter(node => !incoming.has(node.id))
+  const pool = roots.length ? roots : ordered
+  return (pool.find(node => node.entry) ?? pool[0]).id
+}
+
 // Mermaid's layout model preserves parallel edges, explicit edge IDs and subgraphs.
 export function attachInspector(svg, layout, hint, onFocus) {
   const nodes = new Map()
@@ -8,14 +19,16 @@ export function attachInspector(svg, layout, hint, onFocus) {
     const el = elements.get(domId) || elements.get(svg.id + '-' + domId) || elements.get(id)
     if (el) nodes.set(id, el)
   }
-  const trace = createTracer(layout?.edges ?? [])
+  const edges = layout?.edges ?? []
+  const trace = createTracer(edges)
   const paths = [...svg.querySelectorAll('path[data-edge]')]
   const labels = [...svg.querySelectorAll('.edgeLabel .label[data-id]')]
   const initial = nodes.size ? 'Select a node to inspect its connections' : 'Use the controls to zoom and fit the diagram'
   hint.textContent = initial
   let selected
   let mode = 'immediate'
-  function paint() {
+  function paint(id = selected) {
+    selected = id ?? null
     const { reached, active, reverse } = trace(selected, mode)
     for (const [key, node] of nodes) {
       // A nested group can contain the selected node and its incident paths.
@@ -35,8 +48,22 @@ export function attachInspector(svg, layout, hint, onFocus) {
     onFocus(nodes.get(selected), [...reached].map(key => nodes.get(key)).filter(Boolean), selected)
   }
   function select(id) {
-    selected = id === selected ? null : id
-    paint()
+    if (id == null && selected == null) return
+    paint(id === selected ? null : id)
+  }
+  function entryElement() {
+    const described = [...nodes].map(([id, el]) => ({
+      id,
+      entry: el.classList.contains('entry') || !!el.querySelector('.entry'),
+      cluster: el.classList.contains('cluster')
+    }))
+    const id = chooseEntryId(described, edges)
+    if (!id) {
+      if (selected != null) paint(null)
+      return null
+    }
+    paint(id)
+    return nodes.get(id) ?? null
   }
   for (const [id, node] of nodes) {
     node.classList.add('inspectable')
@@ -62,7 +89,9 @@ export function attachInspector(svg, layout, hint, onFocus) {
       mode = value
       if (selected != null) paint()
     },
+    focusEntry: entryElement,
+    has: id => nodes.has(id),
     get selected() { return selected },
-    restore(id) { if (nodes.has(id)) select(id) }
+    restore(id) { if (nodes.has(id)) paint(id) }
   }
 }
